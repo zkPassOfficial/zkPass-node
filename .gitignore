@@ -13,3 +13,12 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# IdeaIDE
+.idea
+
+# VS Code
+.vscode
+
+# keys
+public.key
