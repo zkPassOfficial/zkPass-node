@@ -7,11 +7,11 @@ It performs multi-party secure computing, and can obtain protocol revenue by con
 ### **Multi-party computation**
 Give users the ability to prove to third parties the provenance of such data. The specific implementation of this project, is based on:
 - ECtF: Converting shares in EC(Fp) to shares in Fp
-- GC: Efficient garbling from a fixed-Key blockcipher scheme BHKR13
-- OT: KOS15
+- GC: FreeXor + Half-Gates  (Stacked Garbling/Three Halves make a whole)
+- OT: IKNP03 + KOS15 (Silent OT)
 
 ### **Zero-knowledge proofs**
-Refer to the ability of a proverto convince a verifierthat an assertion is correctwithout providing any useful information to the verifier.
+Refer to the ability of a prover to convince a verifier that an assertion is correct without providing any useful information to the verifier.
 The specific implementation of this project is based on the PLONK algorithm.
 
 ## Project Structure
@@ -23,7 +23,7 @@ The directory structure of the project looks like this:
 │
 ├── ectf                   <- ECtF implementation
 │
-├── gc                     <- Efficient garbling from a fixed-Key blockcipher
+├── gc                     <- Efficient garbling from a fixed-Key block cipher
 │   ├── circuit            <- All required circuits for GC
 │   ├── evaluator          <- GC evaluator
 │   └── garbler            <- GC garbler
@@ -31,6 +31,8 @@ The directory structure of the project looks like this:
 ├── keystore               <- Manage the connection keys
 │
 ├── ot                     <- KOS15 Implementation
+│
+├── typings                <- Common Typings
 │
 ├── utils                  <- Utilities
 │
@@ -48,14 +50,17 @@ The directory structure of the project looks like this:
 # make sure go env is installed on the system.
 
 # clone project
-git clone https://github.com/zkPassOfficial/zkPass-node.git
-cd zkPass-node
+`git clone https://github.com/zkPassOfficial/zkPass-node.git`
+`cd zkPass-node`
+
+# install dependencies
+`go mod tidy`
 
 # Build project
-go build -o zkpass-node
+`go build -o zkpass-node`
 
 # Run project
-./zkpass-node 
+`./zkpass-node `
 ```
 
 ## Contributions
