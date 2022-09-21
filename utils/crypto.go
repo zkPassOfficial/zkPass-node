@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/binary"
 
+	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/salsa20/salsa"
 )
 
@@ -48,4 +49,17 @@ func Encrypt(a, b []byte, nonce uint32, c []byte) []byte {
 
 func Decrypt(a, b []byte, nonce uint32, c []byte) []byte {
 	return Encrypt(a, b, nonce, c)
+}
+
+// Circular Correlation Robustness Hash
+func CCRHash(length int, msg []byte) []byte {
+	h, err := blake2b.New(length, nil)
+	if err != nil {
+		panic("error in CCRHash")
+	}
+	_, err = h.Write(msg)
+	if err != nil {
+		panic("error in CCRHash")
+	}
+	return h.Sum(nil)
 }

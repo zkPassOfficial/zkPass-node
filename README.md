@@ -25,7 +25,7 @@ The directory structure of the project looks like this:
 │
 ├── gc                     <- Efficient garbling from a fixed-Key block cipher
 │   ├── circuit            <- All required circuits for GC
-│   ├── evaluator          <- GC evaluator
+│   ├── evaluator          <- GC evaluator P&P + FreeXor + Half-Gate
 │   └── garbler            <- GC garbler
 │
 ├── keystore               <- Manage the connection keys

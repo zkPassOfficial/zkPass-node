@@ -27,7 +27,7 @@ func (e *Evaluator) Evaluate(no int, vLabels, pLabels,
 	c := (e.Circuit)[no]
 	vLabelsChunks := u.Slice(vLabels, c.VInputSize*16)
 	pLabelsChunks := u.Slice(pLabels, c.PInputSize*16)
-	garbledTableChunks := u.Slice(garbledTable, c.AndGateCount*48)
+	garbledTableChunks := u.Slice(garbledTable, c.AndGateCount*32)
 
 	steps := []int{0, 1, 1, 1, 1, 1, e.Steps, 1}[no]
 	chunks := make([]chunk, steps)
@@ -45,13 +45,13 @@ func (e *Evaluator) Evaluate(no int, vLabels, pLabels,
 }
 
 func evaluate(c *typings.Circuit, wireLabels *[][]byte, garbledTable *[]byte) []byte {
-	offset := 0
+	counter := 0
 
 	for i := 0; i < len(c.Gates); i++ {
 		g := c.Gates[i]
 		if g.Type == typings.GATE_TYPE_ADD {
-			evaluateAndGate(g, wireLabels, garbledTable, offset)
-			offset += 1
+			evaluateAndGate(g, wireLabels, garbledTable, counter)
+			counter += 1
 		} else if g.Type == typings.GATE_TYPE_XOR {
 			evaluateXorGate(g, wireLabels)
 		} else if g.Type == typings.GATE_TYPE_INV {
@@ -68,25 +68,42 @@ func evaluate(c *typings.Circuit, wireLabels *[][]byte, garbledTable *[]byte) []
 	return u.BitsToBytes(lsb)
 }
 
-func evaluateAndGate(g typings.Gate, wireLabels *[][]byte, garbledTable *[]byte, offset int) {
+func evaluateAndGate(g typings.Gate, wireLabels *[][]byte, garbledTable *[]byte, andGateIdx int) {
 
-	in_a := g.InputWires[0]
-	in_b := g.InputWires[1]
-	out := g.OutputWire
+	idx_a := g.InputWires[0]
+	idx_b := g.InputWires[1]
+	idx_c := g.OutputWire
 
-	a := (*wireLabels)[in_a]
-	b := (*wireLabels)[in_b]
+	a := (*wireLabels)[idx_a]
+	b := (*wireLabels)[idx_b]
 
-	var cipher []byte
-	index := 2*getColor(a) + getColor(b)
+	sa := getColor(a)
+	sb := getColor(b)
 
-	if index == 3 { // GRR3
-		cipher = make([]byte, 16)
-	} else { // P&P
-		offset := offset*48 + 16*index
-		cipher = (*garbledTable)[offset : offset+16]
+	offset := andGateIdx * 32
+	tg := (*garbledTable)[offset : offset+16]
+
+	offset = offset + 16
+	te := (*garbledTable)[offset : offset+16]
+
+	hash_a := u.CCRHash(16, a)
+
+	//generator half gate
+	wg := hash_a
+	if sa == 1 {
+		wg = u.XorBytes(wg, tg)
 	}
-	(*wireLabels)[out] = u.Decrypt(a, b, g.Id, cipher)
+
+	//evaluator half gate
+	we := u.CCRHash(16, b)
+	if sb == 1 {
+		we = u.XorBytes(we, u.XorBytes(te, hash_a))
+	}
+
+	//two halves make a whole
+	c := u.XorBytes(wg, we)
+
+	(*wireLabels)[idx_c] = c
 }
 
 func evaluateXorGate(g typings.Gate, wireLabels *[][]byte) {

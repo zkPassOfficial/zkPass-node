@@ -58,7 +58,7 @@ func (g *Garbler) Garble(c *typings.Circuit) (*[]byte, *[]byte, *[]byte) {
 	wireLabels := make([][][]byte, c.WireCount)
 	copy(wireLabels, *randomInputLabels(inputSize, Δ))
 
-	garbledTable := make([]byte, c.AndGateCount*48)
+	garbledTable := make([]byte, c.AndGateCount*32)
 
 	offset := 0
 
@@ -66,7 +66,7 @@ func (g *Garbler) Garble(c *typings.Circuit) (*[]byte, *[]byte, *[]byte) {
 		gate := c.Gates[i]
 		if gate.Type == typings.GATE_TYPE_ADD {
 			encryptedGate := garbleAndGate(gate, &wireLabels, &Δ)
-			copy((garbledTable)[offset*48:(offset+1)*48], encryptedGate[0:48])
+			copy((garbledTable)[offset*32:(offset+1)*32], encryptedGate[0:32])
 			offset += 1
 		} else if gate.Type == typings.GATE_TYPE_XOR {
 			garbleXorGate(gate, &wireLabels, &Δ)
@@ -107,66 +107,56 @@ func getColor(label []byte) int {
 	return int(label[15]) & 0x01
 }
 
+// P&P + FreeXor + Half-Gate
 func garbleAndGate(g typings.Gate, wireLabels *[][][]byte, R *[]byte) []byte {
-	in_a := g.InputWires[0]
-	in_b := g.InputWires[1]
-	out := g.OutputWire
+	idx_a := g.InputWires[0]
+	idx_b := g.InputWires[1]
+	idx_c := g.OutputWire
 
-	a0 := (*wireLabels)[in_a][0]
-	a1 := (*wireLabels)[in_a][1]
-	b0 := (*wireLabels)[in_b][0]
-	b1 := (*wireLabels)[in_b][1]
+	a0 := (*wireLabels)[idx_a][0]
+	a1 := (*wireLabels)[idx_a][1]
 
-	var c_0, c_1 []byte
-	var rows = [4][3]*[]byte{
-		{&a0, &b0, &c_0},
-		{&a0, &b1, &c_0},
-		{&a1, &b0, &c_0},
-		{&a1, &b1, &c_1},
+	b0 := (*wireLabels)[idx_b][0]
+	b1 := (*wireLabels)[idx_b][1]
+
+	pa := getColor(a0)
+	pb := getColor(b0)
+
+	hash_a0 := u.CCRHash(16, a0)
+	hash_a1 := u.CCRHash(16, a1)
+
+	hash_b0 := u.CCRHash(16, b0)
+	hash_b1 := u.CCRHash(16, b1)
+
+	// generator half gate
+	tg := u.XorBytes(hash_a0, hash_a1)
+	if pb == 1 {
+		tg = u.XorBytes(tg, *R)
 	}
 
-	red_red := -1
-	for i := 0; i < len(rows); i++ {
-		a := *rows[i][0]
-		b := *rows[i][1]
-
-		// GRR3
-		if getColor(a) == 1 && getColor(b) == 1 {
-			c := make([]byte, 16)
-			outWire := u.Encrypt(a, b, g.Id, c)
-
-			if i == 3 { //TRUE outWire means true label
-				c_1 = outWire
-				c_0 = u.XorBytes(outWire, *R)
-			} else { // FALSE  outWire means false label
-				c_0 = outWire
-				c_1 = u.XorBytes(outWire, *R)
-			}
-
-			red_red = i
-			break
-		}
-	}
-	(*wireLabels)[out] = [][]byte{c_0, c_1}
-	if red_red == -1 {
-		panic(red_red == -1)
+	wg0 := hash_a0
+	if pa == 1 {
+		wg0 = u.XorBytes(wg0, tg)
 	}
 
-	garbledGate := make([][]byte, 3)
-
-	for i := 0; i < len(rows); i++ {
-		a := *rows[i][0]
-		b := *rows[i][1]
-		c := *rows[i][2]
-
-		if i == red_red {
-			continue
-		}
-		value := u.Encrypt(a, b, g.Id, c) // H(A, B) + C
-		row := 2*getColor(a) + getColor(b)
-		garbledGate[row] = value
+	//evaluator half gate
+	te := u.XorBytes(u.XorBytes(hash_b0, hash_b1), a0)
+	we0 := hash_b0
+	if pb == 1 {
+		we0 = u.XorBytes(we0, u.XorBytes(te, a0))
 	}
-	return u.Flatten(garbledGate)
+
+	truthTable := make([][]byte, 2)
+	truthTable[0] = tg
+	truthTable[1] = te
+
+	//two halves make a whole
+	c0 := u.XorBytes(wg0, we0)
+	c1 := u.XorBytes(c0, *R)
+
+	(*wireLabels)[idx_c] = [][]byte{c0, c1}
+
+	return u.Flatten(truthTable)
 }
 
 func garbleXorGate(g typings.Gate, wireLabels *[][][]byte, R *[]byte) {
