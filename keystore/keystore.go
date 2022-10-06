@@ -35,7 +35,7 @@ type Keystore struct {
 
 func (k *Keystore) Run() {
 	k.genMasterKey()
-	k.rotatingKeys()
+	go k.rotatingKeys()
 }
 
 func (k *Keystore) GetConnKey() (ecdsa.PrivateKey, []byte) {
