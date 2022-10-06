@@ -4,10 +4,12 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/binary"
 	"log"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	u "zkpass-node/utils"
 )
@@ -15,7 +17,7 @@ import (
 type Keystore struct {
 	sync.Mutex
 
-	// validFrom|validUntil|pubkey|signature for client to verify
+	// startTime|endTime|publicKey|signature for client to verify
 	keyData []byte
 
 	// key for each connection
@@ -24,8 +26,11 @@ type Keystore struct {
 	// used to sign connection keys
 	masterKey *ecdsa.PrivateKey
 
-	//master public key PEM format
+	// master public key PEM format
 	masterPublicKeyPEM []byte
+
+	// key valid duration in second
+	keyValidDuration int
 }
 
 func (k *Keystore) Run() {
@@ -68,6 +73,47 @@ func (k *Keystore) genMasterKey() {
 	}
 }
 
+// rotating connection keys and sign it with the master key during a period of time
 func (k *Keystore) rotatingKeys() {
-	// TODO: rotating connection keys and sign it with the master key during a period of time
+	k.keyValidDuration = 15 * 60 // hard code it to be 15 mins at current situation
+
+	// init to 0, so that the connection will do the rotation at beginning
+	nextKeyRotationTime := time.Unix(0, 0)
+
+	for {
+		time.Sleep(time.Second * 1)
+		now := time.Now()
+
+		// 4 mins means the connection is expired
+		if nextKeyRotationTime.Sub(now) > time.Minute*2 {
+			continue
+		}
+
+		// pick a random interval to avoid side-channel attacks
+		randInterval := u.RandInt(k.keyValidDuration/2, k.keyValidDuration)
+		nextKeyRotationTime = now.Add(time.Second * time.Duration(randInterval))
+
+		// key valid start time
+		startTime := make([]byte, 4)
+		binary.BigEndian.PutUint32(startTime, uint32(now.Unix()))
+
+		// key valid end time
+		endTime := make([]byte, 4)
+		interval := now.Add(time.Second * time.Duration(k.keyValidDuration))
+		binary.BigEndian.PutUint32(endTime, uint32(interval.Unix()))
+
+		rotateMasterKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			log.Fatalln("Could not create keys:", err)
+		}
+
+		publicKey := u.Concat([]byte{0x04}, u.To32Bytes(rotateMasterKey.PublicKey.X), u.To32Bytes(rotateMasterKey.PublicKey.Y))
+		signature := u.ECDSASign(k.masterKey, startTime, endTime, publicKey)
+		keyData := u.Concat(startTime, endTime, publicKey, signature)
+
+		k.Lock()
+		k.keyData = keyData
+		k.masterKey = rotateMasterKey
+		k.Unlock()
+	}
 }
