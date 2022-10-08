@@ -31,7 +31,7 @@ func New(o *Options) (n *ZkNode, err error) {
 	}
 
 	g := gin.Default()
-	g.Use(gin.Logger())
+	// g.Use(gin.Logger())
 
 	//todo auth
 	g.Use(middleware.Auth())
