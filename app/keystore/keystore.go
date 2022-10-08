@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	u "zkpass-node/utils"
+	u "zkpass-node/app/utils"
 )
 
 type Keystore struct {

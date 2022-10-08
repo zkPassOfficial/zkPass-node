@@ -1,8 +1,8 @@
 package gc
 
 import (
-	"zkpass-node/typings"
-	u "zkpass-node/utils"
+	"zkpass-node/app/typings"
+	u "zkpass-node/app/utils"
 )
 
 type Garbler struct {
