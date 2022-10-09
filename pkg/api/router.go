@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"zkpass-node/pkg/session"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,14 +13,16 @@ func Default(c *gin.Context) {
 	})
 }
 
-func Register(g *gin.Engine) {
+func Route(sm *session.Manager, g *gin.Engine) {
 
 	g.GET("/", Default)
 	g.POST("/", Default)
+	g.POST("/connect", Connect(sm))
 
 	v1 := g.Group("/api/v1")
-
 	RegisterPing(v1)
-	// RegisterAuth(v1)
 
+	v1.Use(Auth(sm))
+
+	RegisterTls(v1)
 }

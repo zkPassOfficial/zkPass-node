@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ type Manager struct {
 }
 
 func New(max, timeout, life int64) *Manager {
+
 	sm := &Manager{
 		sessions:       make(map[string]*TimeoutSession),
 		kickOffChan:    make(chan string),
@@ -72,6 +74,13 @@ func (m *Manager) Has(sid string) bool {
 func (m *Manager) Add(s *Session) {
 	m.Lock()
 	defer m.Unlock()
-	now := int64(time.Now().UnixNano() / 1e9)
+	nano := time.Now().UnixNano()
+	s.Id = fmt.Sprint(nano)
+	s.Id = "123"
+	now := int64(nano / 1e9)
 	m.sessions[s.Id] = &TimeoutSession{s, now, now}
+}
+
+func (m *Manager) Print() {
+	fmt.Println("sessions", m.sessions)
 }
