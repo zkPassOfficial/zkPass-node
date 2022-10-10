@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
-	u "zkpass-node/utils"
+	u "zkpass-node/app/utils"
 
 	paillier "github.com/roasbeef/go-go-gadget-paillier"
 )
