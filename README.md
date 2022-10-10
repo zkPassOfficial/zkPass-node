@@ -17,30 +17,28 @@ The specific implementation of this project is based on the PLONK algorithm.
 ## Project Structure
 The directory structure of the project looks like this:
 ```
-├── chain                  <- Read data and send transaction for chain 
+├── app                  
+│   ├── main.go          <- Main Entry
+│   ├── cmd              <- All required circuits for GC
+│   ├── ectf             <- ECtF implementation
+│   ├── keystore         <- Manage the connection keys
+│   ├── typings          <- Common Typings
+│   ├── gc               <- Efficient garbling from a fixed-Key block cipher
+│   │   ├── circuit      <- All required circuits for GC
+│   │   ├── evaluator    <- GC evaluator P&P + FreeXor + Half-Gate
+│   │   └── garbler      <- GC garbler
+│   └── utils            <- Utilities
 │
-├── connection             <- Manage the connections from clients
+├── pkg                 
+│   ├── chain            <- Read data and send transaction for chain 
+│   ├── api              <- zkpass-node api
+│   ├── node             <- zkpass-node main logic
+│   ├── session          <- http session
+│   ├── zkp              <- Verification of Zero knowledge Proof
+│   └── ot               <- KOS15 Implementation
 │
-├── ectf                   <- ECtF implementation
-│
-├── gc                     <- Efficient garbling from a fixed-Key block cipher
-│   ├── circuit            <- All required circuits for GC
-│   ├── evaluator          <- GC evaluator P&P + FreeXor + Half-Gate
-│   └── garbler            <- GC garbler
-│
-├── keystore               <- Manage the connection keys
-│
-├── ot                     <- KOS15 Implementation
-│
-├── typings                <- Common Typings
-│
-├── utils                  <- Utilities
-│
-├── zkp                    <- Verification of Zero knowledge Proof
-│
-├── node.go                <- Main Entry
-├── .gitignore             <- List of files ignored by git
-├── go.mod                 <- go mod
+├── .gitignore            
+├── go.mod               
 ├── LICENSE
 └── README.md
 ```
@@ -56,11 +54,9 @@ The directory structure of the project looks like this:
 # install dependencies
 `go mod tidy`
 
-# Build project
-`go build -o zkpass-node`
+# start with dev mode
+`go run app/main.go start`
 
-# Run project
-`./zkpass-node `
 ```
 
 ## Contributions
