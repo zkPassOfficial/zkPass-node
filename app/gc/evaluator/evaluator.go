@@ -11,40 +11,7 @@ type Evaluator struct {
 	GarbledTable [][]byte
 }
 
-func (e *Evaluator) Init(circuits []*typings.Circuit, steps int) {
-	e.Steps = steps
-	e.Circuit = circuits
-	e.GarbledTable = make([][]byte, len(e.Circuit))
-}
-
-func (e *Evaluator) Evaluate(no int, vLabels, pLabels,
-	garbledTable []byte) []byte {
-	type chunk struct {
-		wireLabels   *[][]byte
-		garbledTable *[]byte
-	}
-
-	c := (e.Circuit)[no]
-	vLabelsChunks := u.Slice(vLabels, c.VInputSize*16)
-	pLabelsChunks := u.Slice(pLabels, c.PInputSize*16)
-	garbledTableChunks := u.Slice(garbledTable, c.AndGateCount*32)
-
-	steps := []int{0, 1, 1, 1, 1, 1, e.Steps, 1}[no]
-	chunks := make([]chunk, steps)
-	for r := 0; r < steps; r++ {
-		wireLabels := make([][]byte, c.WireCount)
-		copy(wireLabels, u.Slice(u.Concat(vLabelsChunks[r], pLabelsChunks[r]), 16))
-		chunks[r] = chunk{&wireLabels, &garbledTableChunks[r]}
-	}
-
-	encodedOutput := make([][]byte, steps)
-	for r := 0; r < steps; r++ {
-		encodedOutput[r] = evaluate(c, chunks[r].wireLabels, chunks[r].garbledTable)
-	}
-	return u.Concat(encodedOutput...)
-}
-
-func evaluate(c *typings.Circuit, wireLabels *[][]byte, garbledTable *[]byte) []byte {
+func Evaluate(c *typings.Circuit, wireLabels *[][]byte, garbledTable *[]byte) []byte {
 	counter := 0
 
 	for i := 0; i < len(c.Gates); i++ {

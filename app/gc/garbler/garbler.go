@@ -6,7 +6,6 @@ import (
 )
 
 type Garbler struct {
-	Steps    int
 	Circuits []CircuitData
 }
 
@@ -15,39 +14,6 @@ type CircuitData struct {
 	InputBits   []int
 	Masks       [][]byte
 	Circuit     *typings.Circuit
-}
-
-func (g *Garbler) Init(inputLabels [][][]byte, circuits []*typings.Circuit, steps int) {
-	g.Steps = steps
-	g.Circuits = make([]CircuitData, len(circuits))
-	for i := 1; i < len(g.Circuits); i++ {
-		g.Circuits[i].InputLabels = u.Concat(inputLabels[i]...)
-		g.Circuits[i].Circuit = circuits[i]
-	}
-
-	g.Circuits[1].Masks = make([][]byte, 2)
-	g.Circuits[1].Masks[1] = u.GenRandom(32)
-
-	g.Circuits[2].Masks = make([][]byte, 2)
-	g.Circuits[2].Masks[1] = u.GenRandom(32)
-
-	g.Circuits[3].Masks = make([][]byte, 5)
-	g.Circuits[3].Masks[1] = u.GenRandom(16)
-	g.Circuits[3].Masks[2] = u.GenRandom(16)
-	g.Circuits[3].Masks[3] = u.GenRandom(4)
-	g.Circuits[3].Masks[4] = u.GenRandom(4)
-
-	g.Circuits[4].Masks = make([][]byte, 3)
-	g.Circuits[4].Masks[1] = u.GenRandom(16)
-	g.Circuits[4].Masks[2] = u.GenRandom(16)
-
-	g.Circuits[5].Masks = make([][]byte, 3)
-	g.Circuits[5].Masks[1] = u.GenRandom(16)
-	g.Circuits[5].Masks[2] = u.GenRandom(16)
-
-	g.Circuits[7].Masks = make([][]byte, 2)
-	g.Circuits[7].Masks[1] = u.GenRandom(16)
-
 }
 
 func (g *Garbler) Garble(c *typings.Circuit) (*[]byte, *[]byte, *[]byte) {
